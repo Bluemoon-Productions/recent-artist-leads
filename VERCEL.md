@@ -1,6 +1,6 @@
 # Deploy Radar to Vercel
 
-This project deploys as a static Vite site. No custom domain or paid hosting is required to get started; Vercel assigns a `your-project.vercel.app` URL.
+This project deploys as a Vite site with one serverless API function. The function calls MusicBrainz, a free public music catalogue; it does not need API credentials. No custom domain or paid hosting is required to get started; Vercel assigns a `your-project.vercel.app` URL.
 
 ## 1. Prepare the project
 
@@ -13,7 +13,7 @@ This project deploys as a static Vite site. No custom domain or paid hosting is 
    ```
 
 3. Confirm the build finishes and creates `dist/`.
-4. Review `src/data/artists.json`. Replace the clearly labeled fictional sample records with verified records, or keep the samples for a demo.
+4. No artist dataset or demo records need to be prepared; searches fetch live artist catalogue entries from MusicBrainz.
 5. Commit and push the project to a GitHub repository. Do not commit credentials, private contact data or `.env` files.
 
 ## 2. Import the project into Vercel
@@ -24,18 +24,22 @@ This project deploys as a static Vite site. No custom domain or paid hosting is 
    - Build command: `npm run build`
    - Output directory: `dist`
    - Install command: `npm install`
-4. Select **Deploy** and wait for the build to complete.
-5. Open the generated `https://<project-name>.vercel.app` URL. The URL is provided by Vercel; no domain purchase is needed.
+4. Keep the `api/artists.ts` serverless function in the project; Vercel detects and deploys it automatically alongside the Vite frontend.
+5. Select **Deploy** and wait for the build to complete.
+6. Open the generated `https://<project-name>.vercel.app` URL. The URL is provided by Vercel; no domain purchase is needed.
 
 ## 3. Subsequent updates
 
 Push changes to the connected GitHub branch. Vercel automatically builds a preview for pull requests and updates the production deployment when the production branch changes. To roll back, open the Vercel project’s **Deployments** page and promote a previous successful deployment.
 
-## 4. Important prototype limitations
+## 4. Data source and limitations
 
+- Live artist catalog searches use the free MusicBrainz API; no API key or environment variable is required.
+- MusicBrainz records are community-maintained and incomplete. The API does not provide complete Instagram release announcements, follower counts, reliable state/city coverage, or professional contact details. Radar does not invent these fields.
+- The Vercel Function calls MusicBrainz and caches successful search responses briefly. If MusicBrainz is unavailable or rate-limits the request, search will show an error instead of demo data.
 - Signup/login is local to one browser and is not server-side authentication.
-- Imported artist data is saved in that browser's local storage; it is not shared with other users and is not backed up by Vercel. Use **Export list** to download a backup.
-- Data shipped in `src/data/artists.json` is included in the public website bundle.
-- Static Vercel deployments do not make a writable JSON file into a safe, persistent account database.
+- The app does not persist live results. Vercel's static filesystem is not a shared writable database.
 
-For a real multi-user launch, configure a backend such as Supabase Auth + Postgres (check its current free-plan quotas), enforce authorization on the server/database, and move directory records to that database. Keep server-only secrets in Vercel **Project → Settings → Environment Variables**; never expose a service-role key in a `VITE_` variable. Add a privacy notice and retention policy before storing personal/contact data.
+For official platform metrics and release-post discovery, separate authorized integrations are required. Instagram's official API is restricted and requires an authorized professional account and access token; YouTube's Data API requires a Google project/API key and quota. Neither provides an unrestricted, comprehensive, free feed of every Indian artist's release announcements. Do not scrape platform pages to work around API access or platform terms.
+
+For a real multi-user launch, configure shared authentication and a database, enforce authorization, and add privacy/retention policies before storing contact data. Keep server-only secrets in Vercel **Project → Settings → Environment Variables**; never expose a service-role key in a `VITE_` variable.

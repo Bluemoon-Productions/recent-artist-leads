@@ -1,78 +1,48 @@
-# Radar — Indian independent artist & release directory
+# Radar — live Indian artist catalogue search
 
-Radar is a responsive, open-source starter website for researching Indian independent musicians and their publicly announced music releases. It brings artist/community, genre, location, follower-range and release-date filters together with profile links, announcement sources and outreach details.
+Radar is a responsive React/Vite website for searching artist records from [MusicBrainz](https://musicbrainz.org/), a free, community-maintained music database. Searches run on demand through `/api/artists`; there are no bundled/demo artist records and no API key is required.
 
-> **Prototype, not a live data service.** The included directory contains fictional example records. It does not scrape social networks, discover announcements automatically, or contain verified artist/contact information. Add only information you have verified and are permitted to use.
+## What live search returns
 
-## What is included
+- Artist name and artist type (person, group, etc.).
+- Country and the area recorded in MusicBrainz.
+- Community-maintained genre/style tags.
+- MusicBrainz catalogue link.
+- Instagram, YouTube and Spotify links only if contributors have attached those relationships to the artist record.
 
-- Public landing page explaining the product, its purpose and workflow.
-- Email/password sign-up and login for a **single browser profile**.
-- Search and filters for community, niche, state, follower count, release status and date range.
-- Artist and release table with Instagram, YouTube, Spotify and announcement-source links. Valid links open in a new tab.
-- JSON import (merge by artist `id`) and export for the directory.
-- Responsive layouts for desktop and mobile.
-- Vercel-ready static build.
+Search filters are sent to MusicBrainz for artist name, community tag, genre/niche tag and area. Its artist search results are capped at 100 records per request. MusicBrainz is a volunteer catalogue, so coverage, tags, location and social links vary.
+
+## What no free public source can reliably provide here
+
+This is **not** an upcoming-release monitor. MusicBrainz does not index Instagram announcements, and its catalogue does not provide follower counts, reliable city/state for every artist, private/professional contact details, or a complete feed of future single/EP/album/video announcements. Instagram's [official API](https://developers.facebook.com/documentation/instagram-platform/instagram-api-with-facebook-login/) is restricted to professional accounts and requires an authorized professional account/access token; it is not an unrestricted public search API. YouTube's [Data API](https://developers.google.com/youtube/data-api) requires a Google project/API key and quota; its [video search](https://developers.google.com/youtube/v3/docs/search/list) is not a comprehensive feed of music-release announcements. Google Search/AI and scraped website results are not a free, stable, unrestricted substitute.
+
+For these reasons, Radar disables no filters while pretending to know missing data: it searches only the fields MusicBrainz supplies, and explicitly explains the unavailable follower/date/release/contact fields. A MusicBrainz artist profile is labelled as a **catalogue source**, not a release-announcement source. Empty social links mean the catalogue has no linked URL; they do not prove that the artist has no social profile.
 
 ## Run locally
 
-**Requirements:** Node.js 20.19+ or 22.12+, and npm.
+Requirements: Node.js 20.19+ or 22.12+ and npm.
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open the local URL printed by Vite. Create an account on the sign-in screen; the starter account list is intentionally empty.
+Open the Vite URL (normally `http://localhost:5173`), create a local account, then click **Search live data** in the directory. Vite provides a development API route that calls MusicBrainz server-side. The deployed site uses the Vercel Function in `api/artists.ts`.
 
-Create a production build and test it locally:
+Build and preview:
 
 ```bash
 npm run build
 npm run preview
 ```
 
-## Data format
+## API behavior
 
-`src/data/artists.json` is the starter dataset and the import template. Each record describes an artist and a release lead:
+- `GET /api/artists?query=...&community=...&niche=...&area=...`
+- The endpoint searches MusicBrainz `country:IN`, adds any supplied search fields, and returns at most 100 artist records with catalogue tags and linked artist URLs.
+- Requests include an identifying `User-Agent` and use the [MusicBrainz API](https://musicbrainz.org/doc/MusicBrainz_API) rather than scraping its website. Transient busy/rate-limit responses are retried once; search results are cached briefly by Vercel.
+- No Instagram, Google, YouTube, Spotify or AI API credentials are used by this implementation.
 
-```json
-{
-  "id": "artist-unique-id",
-  "name": "Artist or band name",
-  "community": "Indian independent",
-  "niche": "Indie pop",
-  "area": "Mumbai",
-  "state": "Maharashtra",
-  "followers": 18400,
-  "releaseTitle": "Release title",
-  "releaseType": "Single",
-  "releaseStatus": "Upcoming",
-  "releaseDate": "2026-11-18",
-  "instagram": "https://www.instagram.com/artist/",
-  "youtube": "https://www.youtube.com/@artist",
-  "spotify": "https://open.spotify.com/artist/...",
-  "source": "https://www.instagram.com/p/...",
-  "mobile": "",
-  "email": "",
-  "management": ""
-}
-```
+## Accounts and privacy
 
-Allowed `releaseType` values: `Single`, `Album`, `EP`, `Music video`. Allowed `releaseStatus` values: `Announced`, `Upcoming`, `Released`. Dates use `YYYY-MM-DD`; follower count is a non-negative number. Keep a stable unique `id` per artist: importing an existing ID updates that record, and a new ID adds one. The browser validates required fields before importing.
-
-The browser stores imported directory records in `localStorage`, so export a backup before clearing site data or changing browsers. The included sample records are fictional and are visibly marked as examples.
-
-## Authentication and storage limitations
-
-This static prototype **does not provide production authentication**. Signup stores a salted password hash in the browser's `localStorage`; it does not store a plain-text password or send credentials to a server. Accounts, login sessions and imported data are local to that browser. They are not shared across users or devices, and a user with access to the browser can alter its local data.
-
-Do not put real passwords, private contact lists or sensitive information in a JSON file shipped with the website. A JSON file bundled into a static site is public, and Vercel's static filesystem is not a persistent shared database. For multi-user accounts, shared data and access controls, connect a backend before inviting users. A practical no-cost starting path is Supabase Auth + Postgres on its free plan (check current plan limits), with server-side authorization and environment variables for public configuration. Never put a service-role key in browser code.
-
-## Release-data sourcing
-
-The website is a directory and filter UI—not a release-monitoring crawler. There is no dependable, free, unrestricted API covering all Indian artists' social announcements, and scraping platforms may violate their terms. Curate records from public artist/label announcements, link the original post in `source`, record when it was checked in your own process, and verify dates before outreach. Only include contact details published for professional enquiries or shared with permission.
-
-## Deploy
-
-Follow [VERCEL.md](./VERCEL.md) for a step-by-step deployment guide. Vercel provides a free `*.vercel.app` address; you do not need to buy a domain or hosting to publish this prototype.
+Signup/login in this prototype remains local to the current browser and is not production authentication. Artist results are fetched from MusicBrainz when requested and are not retained by the app. Do not treat this as shared multi-user storage or use it to collect sensitive/private contact details. See [VERCEL.md](./VERCEL.md) for deployment notes.

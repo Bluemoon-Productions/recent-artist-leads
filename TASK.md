@@ -25,28 +25,29 @@ The directory can cover musicians, rappers, bands, Indian hip-hop and pop artist
 ## Delivered in this prototype
 
 - Responsive React + TypeScript + Vite homepage and artist directory.
-- Directory filters for search, community, niche, state, follower range, release status and release-date range.
-- JSON import/export, record validation and merge-by-ID behavior.
-- New-tab links with URL scheme validation.
+- On-demand live Indian artist search through the free MusicBrainz API with artist, community tag, genre tag and area search fields.
+- Artist name/type, recorded area/country, catalogue tags, MusicBrainz record link, and available linked Instagram/YouTube/Spotify profiles.
+- No bundled example artist rows; results are fetched live and are not persisted by the app.
+- Clear disclosure that MusicBrainz cannot provide reliable follower counts, state-level location, professional contact details or comprehensive social release announcements.
+- Vercel serverless API route and Vite local-development API middleware.
 - Browser-local signup/login, with salted password hashes rather than plain-text passwords.
 - `README.md` and `VERCEL.md` setup and deployment instructions.
-- Fictional demo rows only; no claims that sample artists, releases or contacts are real.
 
 ## Boundaries and next steps for a production service
 
-1. Replace demo entries with reviewed, permission-appropriate data and link each release to its original announcement.
-2. Connect a backend for shared accounts and directory data. A static JSON file and browser storage are not a secure multi-user database. Evaluate Supabase Auth + Postgres free-plan limits or another suitable backend.
-3. Add a server-side data import/curation workflow and source-verification timestamps.
+1. Evaluate authorized YouTube Data API integration for channel/video discovery if a Google project/key and quota are acceptable; video search is not a comprehensive upcoming music release feed.
+2. Obtain authorized artist/management sources or build a reviewed opt-in release submission workflow. Public social APIs do not offer unrestricted access to every artist's announcement posts.
+3. Add shared authentication and storage only when a backend and access-control model are selected.
 4. Establish privacy, retention, access-control and outreach policies before storing or sharing contact details.
-5. Deploy through GitHub → Vercel using the steps in `VERCEL.md`, then re-test authentication/data behavior after the backend integration.
+5. Deploy through GitHub → Vercel using the steps in `VERCEL.md`.
 
 ## Acceptance checklist
 
 - [x] Homepage explains the product and includes the pre-footer directory call to action.
-- [x] Directory can be searched and filtered by the requested artist and release criteria.
-- [x] Profile and announcement links are external, clickable and open in a new tab.
-- [x] Contact and management fields are represented without inventing personal data.
-- [x] JSON data format and local import/export are documented.
+- [x] Live artist search is performed against a public source, not a fictional local dataset.
+- [x] Catalogue and available profile links are external and open in a new tab.
+- [x] Unsupported follower, upcoming-release, announcement and contact fields are disclosed rather than fabricated.
 - [x] README and Vercel deployment guide are present.
-- [x] Static deployment and local-account limitations are disclosed.
+- [x] Live API and local-account limitations are disclosed.
+- [ ] Comprehensive upcoming-release search and follower-range filtering require sources/APIs that provide those fields; no unrestricted free public source has been identified.
 - [ ] Production shared authentication, database and real release-data ingestion are intentionally out of scope for this frontend-only prototype.

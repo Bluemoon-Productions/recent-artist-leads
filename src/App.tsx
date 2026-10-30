@@ -1,7 +1,7 @@
-import { useMemo, useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import {
-  ArrowDown,
   ArrowDownRight,
+  ArrowDown,
   ArrowLeft,
   ArrowRight,
   ArrowUpRight,
@@ -12,33 +12,19 @@ import {
   Music2,
   Search,
   ShieldCheck,
-  SlidersHorizontal,
   Sparkles,
-  Upload,
   Youtube,
 } from "lucide-react";
-import starterArtists from "./data/artists.json";
-import type { Artist, LocalAccount, ReleaseStatus } from "./types";
+import type { Artist, LocalAccount } from "./types";
 
-const ARTISTS_KEY = "radar-artists-v1";
 const ACCOUNTS_KEY = "radar-local-accounts-v1";
 const SESSION_KEY = "radar-local-session-v1";
 
 type Screen = "home" | "auth" | "dashboard";
 type AuthMode = "login" | "signup";
 
-function readArtists(): Artist[] {
-  const saved = localStorage.getItem(ARTISTS_KEY);
-  return saved ? JSON.parse(saved) as Artist[] : starterArtists as Artist[];
-}
-
-function formatFollowers(value: number): string {
-  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}m`;
-  if (value >= 1_000) return `${(value / 1_000).toFixed(value >= 10_000 ? 0 : 1)}k`;
-  return String(value);
-}
-
-function safeUrl(value: string): string | null {
+function safeUrl(value: string | undefined): string | null {
+  if (!value) return null;
   try {
     const url = new URL(value);
     return url.protocol === "https:" || url.protocol === "http:" ? url.href : null;
@@ -47,7 +33,7 @@ function safeUrl(value: string): string | null {
   }
 }
 
-function externalLink(value: string, label: string) {
+function externalLink(value: string | undefined, label: string) {
   const url = safeUrl(value);
   return url ? (
     <a className="table-link" href={url} target="_blank" rel="noopener noreferrer" aria-label={`Open ${label} in a new tab`}>
@@ -70,20 +56,6 @@ async function passwordDigest(password: string, salt: Uint8Array): Promise<strin
   return toBase64(new Uint8Array(bits));
 }
 
-function validArtist(value: unknown): value is Artist {
-  if (!value || typeof value !== "object") return false;
-  const item = value as Record<string, unknown>;
-  return ["id", "name", "community", "niche", "area", "state", "releaseTitle", "releaseType", "releaseStatus", "releaseDate"]
-    .every((key) => typeof item[key] === "string")
-    && typeof item.followers === "number"
-    && item.followers >= 0
-    && ["instagram", "youtube", "spotify", "source", "mobile", "email", "management"]
-      .every((key) => typeof item[key] === "string")
-    && ["Single", "Album", "EP", "Music video"].includes(String(item.releaseType))
-    && ["Announced", "Upcoming", "Released"].includes(String(item.releaseStatus))
-    && /^\d{4}-\d{2}-\d{2}$/.test(String(item.releaseDate));
-}
-
 function App() {
   const [screen, setScreen] = useState<Screen>(() => localStorage.getItem(SESSION_KEY) ? "dashboard" : "home");
   const [authMode, setAuthMode] = useState<AuthMode>("login");
@@ -91,40 +63,39 @@ function App() {
   const [password, setPassword] = useState("");
   const [authError, setAuthError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [artists, setArtists] = useState<Artist[]>(readArtists);
+  const [artists, setArtists] = useState<Artist[]>([]);
   const [query, setQuery] = useState("");
   const [community, setCommunity] = useState("");
-  const [niche, setNiche] = useState("");
-  const [stateFilter, setStateFilter] = useState("");
-  const [minFollowers, setMinFollowers] = useState("");
-  const [maxFollowers, setMaxFollowers] = useState("");
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
-  const [releaseFilter, setReleaseFilter] = useState<"All releases" | ReleaseStatus>("All releases");
-  const [notice, setNotice] = useState("");
-  const fileInput = useRef<HTMLInputElement>(null);
+  const [niche, setNiche] = useState("indie");
+  const [areaFilter, setAreaFilter] = useState("");
+  const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState("");
+  const [hasSearched, setHasSearched] = useState(false);
+  const [totalMatches, setTotalMatches] = useState(0);
 
-  const filteredArtists = useMemo(() => artists.filter((artist) => {
-    const text = `${artist.name} ${artist.community} ${artist.niche} ${artist.area} ${artist.state} ${artist.releaseTitle}`.toLowerCase();
-    return (!query || text.includes(query.toLowerCase()))
-      && (!community || artist.community === community)
-      && (!niche || artist.niche === niche)
-      && (!stateFilter || artist.state === stateFilter)
-      && (!minFollowers || artist.followers >= Number(minFollowers))
-      && (!maxFollowers || artist.followers <= Number(maxFollowers))
-      && (!dateFrom || artist.releaseDate >= dateFrom)
-      && (!dateTo || artist.releaseDate <= dateTo)
-      && (releaseFilter === "All releases" || artist.releaseStatus === releaseFilter);
-  }).sort((left, right) => right.releaseDate.localeCompare(left.releaseDate)), [artists, community, dateFrom, dateTo, maxFollowers, minFollowers, niche, query, releaseFilter, stateFilter]);
-
-  const announcedCount = artists.filter((artist) => artist.releaseStatus !== "Released").length;
-  const states = [...new Set(artists.map((artist) => artist.state))].sort();
-  const communities = [...new Set(artists.map((artist) => artist.community))].sort();
-  const niches = [...new Set(artists.map((artist) => artist.niche))].sort();
-
-  function persistArtists(next: Artist[]) {
-    localStorage.setItem(ARTISTS_KEY, JSON.stringify(next));
-    setArtists(next);
+  async function searchArtists(event?: FormEvent<HTMLFormElement>) {
+    event?.preventDefault();
+    setSearching(true);
+    setSearchError("");
+    setHasSearched(true);
+    try {
+      const params = new URLSearchParams();
+      if (query.trim()) params.set("query", query.trim());
+      if (community.trim()) params.set("community", community.trim());
+      if (niche.trim()) params.set("niche", niche.trim());
+      if (areaFilter.trim()) params.set("area", areaFilter.trim());
+      const response = await fetch(`/api/artists?${params.toString()}`);
+      const result = await response.json() as { artists?: Artist[]; total?: number; error?: string };
+      if (!response.ok) throw new Error(result.error ?? `Artist search failed (HTTP ${response.status}).`);
+      setArtists(result.artists ?? []);
+      setTotalMatches(result.total ?? 0);
+    } catch (error) {
+      setArtists([]);
+      setTotalMatches(0);
+      setSearchError(error instanceof Error ? error.message : "Could not load live artist records.");
+    } finally {
+      setSearching(false);
+    }
   }
 
   async function handleAuth(event: FormEvent<HTMLFormElement>) {
@@ -162,39 +133,6 @@ function App() {
   function logout() {
     localStorage.removeItem(SESSION_KEY);
     setScreen("home");
-  }
-
-  async function importArtists(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    try {
-      const parsed: unknown = JSON.parse(await file.text());
-      if (!Array.isArray(parsed) || !parsed.every(validArtist)) {
-        throw new Error("Expected a JSON array of artists. Check the sample file and required fields.");
-      }
-      const merged = [...artists];
-      for (const artist of parsed as Artist[]) {
-        const index = merged.findIndex((existing) => existing.id === artist.id);
-        if (index >= 0) merged[index] = artist;
-        else merged.push(artist);
-      }
-      persistArtists(merged);
-      setNotice(`Imported ${parsed.length} record${parsed.length === 1 ? "" : "s"}. Data is saved in this browser.`);
-    } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Could not read that JSON file.");
-    } finally {
-      event.target.value = "";
-    }
-  }
-
-  function exportArtists() {
-    const blob = new Blob([JSON.stringify(artists, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "radar-artists.json";
-    link.click();
-    URL.revokeObjectURL(url);
   }
 
   function enterAuth(mode: AuthMode) {
@@ -256,58 +194,53 @@ function App() {
               <button className="back-link" onClick={() => setScreen("home")}><ArrowLeft size={14} /> Back to overview</button>
               <span className="eyebrow dashboard-eyebrow"><span className="eyebrow-dot" /> ARTIST INTELLIGENCE / INDIA</span>
               <h1>Find your next<br /><span>collaboration.</span></h1>
-              <p>Artist profiles and release leads, organized for the first conversation.</p>
+              <p>Live artist catalogue records and available profile links, organized for discovery.</p>
             </div>
-            <div className="dashboard-counter"><span>RELEASE LEADS</span><strong>{String(announcedCount).padStart(2, "0")}</strong><small>announced &amp; upcoming</small></div>
+            <div className="dashboard-counter"><span>LIVE ARTIST RESULTS</span><strong>{String(artists.length).padStart(2, "0")}</strong><small>MusicBrainz records loaded</small></div>
           </div>
 
-          <div className="prototype-notice"><span>DEMO DATA</span> These example records are fictional. Import your verified artist data to get started; releases and contact details are not automatically sourced.</div>
+          <div className="prototype-notice"><span>LIVE SOURCE</span> Searches MusicBrainz, a free community-maintained music catalogue. No sample artists are bundled in this site.</div>
           <section className="workspace-card">
             <div className="workspace-heading">
-              <div><h2>Artist directory</h2><p>Filter artist profiles, release dates and outreach details.</p></div>
-              <div className="data-actions">
-                <input ref={fileInput} className="visually-hidden" type="file" accept=".json,application/json" onChange={importArtists} />
-                <button className="button button-outline" onClick={() => fileInput.current?.click()}><Upload size={15} /> Import JSON</button>
-                <button className="button button-dark" onClick={exportArtists}><ArrowDown size={15} /> Export list</button>
+              <div><h2>Search artist catalogue</h2><p>Enter filters, then search the live public catalogue.</p></div>
+            </div>
+
+            <form className="live-search-form" onSubmit={searchArtists}>
+              <div className="filter-toolbar">
+                <label className="live-filter"><span>Artist name</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="e.g. Indian indie artist" /></label>
+                <label className="live-filter"><span>Community tag</span><input value={community} onChange={(event) => setCommunity(event.target.value)} placeholder="e.g. Indian hip-hop" /></label>
+                <label className="live-filter"><span>Niche / genre tag</span><input value={niche} onChange={(event) => setNiche(event.target.value)} placeholder="e.g. indie pop, rap" /></label>
+                <label className="live-filter"><span>City / area</span><input value={areaFilter} onChange={(event) => setAreaFilter(event.target.value)} placeholder="e.g. Mumbai" /></label>
+                <button className="button button-orange search-submit" disabled={searching}><Search size={15} /> {searching ? "Searching…" : "Search live data"}</button>
               </div>
-            </div>
-            {notice && <div className="inline-notice" role="status">{notice}<button onClick={() => setNotice("")}>Dismiss</button></div>}
+            </form>
 
-            <div className="filter-toolbar">
-              <label className="search-field"><Search size={17} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search artist, city or sound…" /></label>
-              <span className="filter-caption"><SlidersHorizontal size={14} /> FILTERS</span>
-              <select aria-label="Filter by community" value={community} onChange={(event) => setCommunity(event.target.value)}><option value="">All communities</option>{communities.map((item) => <option key={item}>{item}</option>)}</select>
-              <select aria-label="Filter by niche" value={niche} onChange={(event) => setNiche(event.target.value)}><option value="">All niches</option>{niches.map((item) => <option key={item}>{item}</option>)}</select>
-              <select aria-label="Filter by state" value={stateFilter} onChange={(event) => setStateFilter(event.target.value)}><option value="">All states</option>{states.map((item) => <option key={item}>{item}</option>)}</select>
+            <div className="availability-note">
+              <strong>What this free source can’t provide:</strong> MusicBrainz doesn’t index Instagram follower counts, reliable state-level location, upcoming social announcements, or professional contact details. Those filters are unavailable rather than guessed. Social links appear only when contributors have linked them to a record.
             </div>
-            <div className="filter-toolbar secondary-filters">
-              <label className="range-input">Followers <input type="number" min="0" placeholder="Min" value={minFollowers} onChange={(event) => setMinFollowers(event.target.value)} /><span>to</span><input type="number" min="0" placeholder="Max" value={maxFollowers} onChange={(event) => setMaxFollowers(event.target.value)} /></label>
-              <label className="date-input">Release date <input aria-label="Release date from" type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} /><span>to</span><input aria-label="Release date to" type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} /></label>
-              <select aria-label="Filter by release status" value={releaseFilter} onChange={(event) => setReleaseFilter(event.target.value as "All releases" | ReleaseStatus)}><option>All releases</option><option>Announced</option><option>Upcoming</option><option>Released</option></select>
-              <button className="reset-button" onClick={() => { setQuery(""); setCommunity(""); setNiche(""); setStateFilter(""); setMinFollowers(""); setMaxFollowers(""); setDateFrom(""); setDateTo(""); setReleaseFilter("All releases"); }}>Reset filters</button>
-            </div>
+            {searchError && <p className="form-error search-error" role="alert">{searchError}</p>}
 
-            <div className="results-bar"><span><strong>{filteredArtists.length}</strong> {filteredArtists.length === 1 ? "artist" : "artists"} found</span><span>Release date · newest first</span></div>
+            <div className="results-bar"><span><strong>{artists.length}</strong> {artists.length === 1 ? "artist" : "artists"} found</span><span>{hasSearched ? `MusicBrainz catalogue: ${totalMatches.toLocaleString()} matching records · showing up to 100` : "Live catalogue · no demo data"}</span></div>
             <div className="table-scroll">
               <table>
-                <thead><tr><th>ARTIST / RELEASE</th><th>COMMUNITY · SOUND</th><th>LOCATION</th><th>FOLLOWERS</th><th>RELEASE</th><th>SOCIALS</th><th>ANNOUNCEMENT</th><th>CONTACT</th></tr></thead>
+                <thead><tr><th>ARTIST</th><th>TYPE</th><th>ORIGIN AREA / COUNTRY</th><th>CATALOG TAGS</th><th>INSTAGRAM</th><th>YOUTUBE</th><th>SPOTIFY</th><th>CATALOG SOURCE</th></tr></thead>
                 <tbody>
-                  {filteredArtists.length ? filteredArtists.map((artist) => (
+                  {artists.length ? artists.map((artist) => (
                     <tr key={artist.id}>
-                      <td><div className="artist-cell"><span className="artist-avatar">{artist.name.split(/[\s—-]+/).filter(Boolean).map((part) => part[0]).slice(0, 2).join("").toUpperCase()}</span><div><strong>{artist.name}</strong><span>{artist.releaseTitle}</span>{artist.isDemo && <small className="demo-tag">EXAMPLE</small>}</div></div></td>
-                      <td><strong className="cell-primary">{artist.community}</strong><span className="cell-secondary">{artist.niche}</span></td>
-                      <td><strong className="cell-primary">{artist.area}</strong><span className="cell-secondary">{artist.state}</span></td>
-                      <td><span className="followers">{formatFollowers(artist.followers)}</span></td>
-                      <td><span className="release-type">{artist.releaseType}</span></td>
-                      <td><div className="social-links">{externalLink(artist.instagram, "IG")}{externalLink(artist.youtube, "YT")}{externalLink(artist.spotify, "SP")}</div></td>
-                      <td><div className="release-date-cell"><span className={`status-pill status-${artist.releaseStatus.toLowerCase()}`}>{artist.releaseStatus}</span><span>{new Date(`${artist.releaseDate}T00:00:00`).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</span>{artist.source && externalLink(artist.source, "View source")}</div></td>
-                      <td><div className="contact-cell">{artist.email ? <a href={`mailto:${artist.email}`}>{artist.email}</a> : <span>—</span>}{artist.mobile && <a href={`tel:${artist.mobile}`}>{artist.mobile}</a>}{artist.management && <span>{artist.management}</span>}</div></td>
+                      <td><div className="artist-cell"><span className="artist-avatar">{artist.name.split(/[\s—-]+/).filter(Boolean).map((part) => part[0]).slice(0, 2).join("").toUpperCase()}</span><div><strong>{artist.name}</strong><span>MusicBrainz artist record</span></div></div></td>
+                      <td><span className="cell-primary">{artist.type}</span></td>
+                      <td><strong className="cell-primary">{artist.location || "Not listed"}</strong><span className="cell-secondary">{artist.country || "Country not listed"}</span></td>
+                      <td><span className="tag-list">{artist.tags.length ? artist.tags.join(", ") : "No tags recorded"}</span></td>
+                      <td>{externalLink(artist.instagram, "Instagram")}</td>
+                      <td>{externalLink(artist.youtube, "YouTube")}</td>
+                      <td>{externalLink(artist.spotify, "Spotify")}</td>
+                      <td>{externalLink(artist.profileUrl, "MusicBrainz record")}</td>
                     </tr>
-                  )) : <tr><td className="empty-cell" colSpan={8}><div><Search size={22} /><strong>No artists match these filters.</strong><span>Try adjusting a filter or import an artist JSON file.</span></div></td></tr>}
+                  )) : <tr><td className="empty-cell" colSpan={8}><div><Search size={22} /><strong>{searchError ? "Live search didn’t complete." : hasSearched ? "No catalogue records matched." : "Search the live artist catalogue."}</strong><span>{searchError ? "Check your connection and try again." : hasSearched ? "Try a broader artist, tag or area filter. The catalogue is community-maintained and incomplete." : "Choose any filters above and select “Search live data” to fetch current MusicBrainz records."}</span></div></td></tr>}
                 </tbody>
               </table>
             </div>
-            <div className="table-footnote"><ShieldCheck size={14} /> Only use contact details shared publicly or with permission. Verify every release announcement at its source before outreach.</div>
+            <div className="table-footnote"><ShieldCheck size={14} /> These are live artist-catalogue records, not release announcements. Verify profiles and announcements at their original sources before outreach. Data: <a href="https://musicbrainz.org/doc/MusicBrainz_API" target="_blank" rel="noopener noreferrer">MusicBrainz API</a>.</div>
           </section>
           <footer className="dashboard-footer"><a className="wordmark" href="#home" onClick={(event) => { event.preventDefault(); setScreen("home"); }}><span className="brand-mark"><Disc3 size={18} /></span>radar<span className="wordmark-period">.</span></a><span>Built for better first listens. © {new Date().getFullYear()} Radar</span><span>Research thoughtfully. Reach out respectfully.</span></footer>
         </main>
@@ -324,7 +257,7 @@ function Home({ onStart }: { onStart: () => void }) {
           <div className="hero-copy">
             <span className="eyebrow"><span className="eyebrow-dot" /> A BETTER WAY INTO WHAT'S NEXT</span>
             <h1>Find the sound<br />before <span>the noise.</span></h1>
-            <p className="hero-description">A thoughtful starting point for discovering independent Indian artists and the music they’re about to share.</p>
+            <p className="hero-description">A thoughtful starting point for discovering Indian artists in a live, community-maintained music catalogue.</p>
             <div className="hero-actions"><button className="button button-orange" onClick={onStart}>Explore the directory <ArrowUpRight size={16} /></button><a className="learn-link" href="#about">Meet Radar <ArrowDownRight size={16} /></a></div>
             <div className="hero-note"><span className="avatar-stack"><i>♪</i><i>र</i><i>↗</i></span><span>For the people who make<br />music move forward.</span></div>
           </div>
@@ -341,14 +274,14 @@ function Home({ onStart }: { onStart: () => void }) {
         <section className="intro-section" id="about">
           <div className="section-index">01 / THE IDEA</div>
           <div className="intro-content"><span className="eyebrow">A LITTLE LESS SEARCHING. A LOT MORE LISTENING.</span><h2>The next great<br />collaboration is<br /><span>already out there.</span></h2></div>
-          <div className="intro-aside"><p>But finding the right independent musician—and knowing when they have something new to share—can take hours across scattered platforms.</p><p>Radar brings your research into one considered workspace, so you can spend less time digging and more time making a genuine connection.</p><a href="#how" className="underlined-link">How it works <ArrowDownRight size={15} /></a></div>
+          <div className="intro-aside"><p>Finding independent musicians and their music records can mean searching across scattered platforms and incomplete catalogues.</p><p>Radar gives you a live starting point with artist records, tags and linked profiles. Social release announcements and follower counts are not included by the available free source.</p><a href="#how" className="underlined-link">How it works <ArrowDownRight size={15} /></a></div>
         </section>
 
         <section className="how-section" id="how">
-          <div className="how-heading"><div><span className="eyebrow">02 / YOUR NEW ROUTINE</span><h2>Good things<br />come into focus.</h2></div><p>Search with intention. Follow the lead.<br />Start a better conversation.</p></div>
+          <div className="how-heading"><div><span className="eyebrow">02 / YOUR NEW ROUTINE</span><h2>Good things<br />come into focus.</h2></div><p>Search the catalogue. Review the source.<br />Start with what’s actually available.</p></div>
           <div className="steps-grid">
             <article className="step-card"><span className="step-number">01</span><div className="step-icon"><Search size={21} /></div><h3>Find your people.</h3><p>Filter by community, genre, city, state and follower range to find the artists that fit your brief.</p><span className="step-meta">COMMUNITY · SOUND · PLACE</span></article>
-            <article className="step-card"><span className="step-number">02</span><div className="step-icon"><Disc3 size={21} /></div><h3>Catch the next release.</h3><p>Sort announced, upcoming and released music by date. Verify every lead against its original source.</p><span className="step-meta">SINGLES · EPs · ALBUMS · VIDEO</span></article>
+            <article className="step-card"><span className="step-number">02</span><div className="step-icon"><Disc3 size={21} /></div><h3>Follow the catalogue.</h3><p>Review community-maintained artist tags and catalogue links. Release announcements need a separate, authorized data source.</p><span className="step-meta">CATALOGUE RECORDS · NOT RELEASE ALERTS</span></article>
             <article className="step-card"><span className="step-number">03</span><div className="step-icon"><ArrowUpRight size={21} /></div><h3>Make it personal.</h3><p>Keep profiles, official links and publicly shared contact details together. Reach out with context.</p><span className="step-meta">A THOUGHTFUL FIRST HELLO</span></article>
           </div>
         </section>
