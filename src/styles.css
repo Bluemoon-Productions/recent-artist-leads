@@ -135,6 +135,28 @@ a { color: inherit; text-decoration: none; }
 .dashboard-counter small { font: 10px "DM Sans", sans-serif; letter-spacing: 0; }
 .prototype-notice { padding: 11px 14px; background: #eee3d5; color: #655b4e; font-size: 11px; line-height: 1.6; }
 .prototype-notice span { margin-right: 10px; color: #a74d31; font: 500 9px var(--mono); letter-spacing: .5px; }
+.live-search-form .filter-toolbar { align-items: end; flex-wrap: wrap; padding-top: 15px; padding-bottom: 15px; }
+.live-filter { display: grid; flex: 1 1 155px; gap: 6px; color: #77756e; font-size: 9px; }
+.live-filter input { width: 100%; height: 36px; padding: 0 9px; border: 1px solid #e4e2da; border-radius: 2px; background: #fbfaf6; color: #4a4943; font-size: 10px; }
+.live-filter select { width: 100%; min-width: 150px; height: 36px; padding: 0 9px; border: 1px solid #e4e2da; border-radius: 2px; background: #fbfaf6; color: #4a4943; font-size: 10px; }
+.live-filter-row { align-items: start !important; }
+.paired-inputs { display: flex; align-items: center; gap: 7px; }
+.paired-inputs input { min-width: 0; flex: 1; }
+.paired-inputs span { color: #aaa89f; font-size: 9px; }
+.search-provider-note p { margin: 0; color: #77756e; font-size: 9px; line-height: 1.5; }
+.search-submit { min-height: 36px; padding: 0 12px; font-size: 10px; }
+.search-submit:disabled { opacity: .65; cursor: wait; }
+.external-search-card { display: flex; align-items: center; gap: 14px; padding: 15px 20px; border-top: 1px solid #eeece5; background: #f9f7f1; }
+.external-search-icon { width: 40px; height: 40px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 50%; background: #eee3d5; color: var(--orange); }
+.external-search-card>div { flex: 1; }
+.external-search-card strong { font: 600 13px var(--display); }
+.external-search-card p { margin: 4px 0 0; color: #77756e; font-size: 10px; line-height: 1.5; }
+.external-search-card .button { min-height: 37px; padding: 0 12px; font-size: 10px; white-space: nowrap; }
+.availability-note { padding: 12px 18px; border-top: 1px solid #eeece5; color: #737169; font-size: 10px; line-height: 1.65; }
+.availability-note strong { color: #514d42; }
+.search-error { margin: 10px 18px; }
+.tag-list { display: block; max-width: 185px; color: #716f67; font-size: 9px; line-height: 1.6; }
+.table-footnote a { color: #55544e; text-decoration: underline; }
 .workspace-card { margin-top: 16px; background: #fbfaf6; border: 1px solid #e6e4dc; }
 .workspace-heading { display: flex; align-items: center; justify-content: space-between; padding: 24px 24px 20px; }
 .workspace-heading h2 { margin: 0; font: 600 21px var(--display); letter-spacing: -.6px; }
@@ -210,5 +232,6 @@ tbody tr:last-child td { border-bottom: 0; }
   .dashboard { padding: 22px 14px 0; }.dashboard-top { padding: 7px 0 18px; align-items: start; }.dashboard-top h1 { font-size: 46px; letter-spacing: -3px; }.dashboard-top>div:first-child>p { max-width: 250px; line-height: 1.6; }.dashboard-counter { margin-top: 44px; }.dashboard-counter strong { font-size: 40px; }.dashboard-counter span { font-size: 7px; }.dashboard-counter small { max-width: 72px; text-align: right; font-size: 8px; }
   .prototype-notice { font-size: 10px; }.workspace-heading { padding: 18px 14px; align-items: start; flex-direction: column; gap: 13px; }.data-actions { width: 100%; }.data-actions .button { flex: 1; font-size: 9px; padding: 0 7px; }
   .filter-toolbar { padding: 10px 12px; gap: 8px; }.search-field { min-width: 100%; flex-basis: 100%; padding: 0 4px; }.filter-caption { display: none; }.filter-toolbar select { flex: 1; min-width: 95px; }.secondary-filters { align-items: start; }.range-input, .date-input { width: 100%; flex-wrap: wrap; }.range-input input { width: 75px; }.date-input input { flex: 1; min-width: 118px; }.secondary-filters>select { flex: 1; }.reset-button { margin-left: 0; }
+  .live-filter { flex-basis: calc(50% - 8px); }.live-filter select { min-width: 0; }.live-filter-row .live-filter { flex-basis: 100%; }.search-submit { width: 100%; }.external-search-card { align-items: start; flex-wrap: wrap; padding: 13px; }.external-search-card>div { min-width: calc(100% - 60px); }.external-search-card .button { width: 100%; }
   .results-bar { padding: 11px 13px; }.results-bar span:last-child { font-size: 7px; }.table-footnote { align-items: start; padding: 11px 13px; }.dashboard-footer { min-height: 88px; flex-wrap: wrap; gap: 3px; }.dashboard-footer>span:last-child { display: none; }
 }
