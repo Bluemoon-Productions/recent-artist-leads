@@ -21,12 +21,16 @@ This project deploys as a Vite site with one serverless API function for optiona
 1. Create a free account at [vercel.com](https://vercel.com/) and connect GitHub.
 2. Choose **Add New → Project**, then import this repository.
 3. Confirm the framework is **Vite** and use these build settings:
+   - Application preset: **Vite**
    - Build command: `npm run build`
    - Output directory: `dist`
-   - Install command: `npm install`
-4. Keep the `api/artists.ts` serverless function in the project; Vercel detects and deploys it automatically alongside the Vite frontend.
-5. Select **Deploy** and wait for the build to complete.
-6. Open the generated `https://<project-name>.vercel.app` URL. The URL is provided by Vercel; no domain purchase is needed.
+   - Install command: leave the default/automatic setting, or set it to `npm install`
+4. Enter commands as plain text in their respective fields. Do not include quote marks or commas, and do not combine the install and build commands in one field. For example, enter `npm install`, not `'npm install'`.
+5. Keep the `api/artists.ts` serverless function in the project; Vercel detects and deploys it automatically alongside the Vite frontend.
+6. Select **Deploy** and wait for the build to complete.
+7. Open the generated `https://<project-name>.vercel.app` URL. The URL is provided by Vercel; no domain purchase is needed.
+
+If a build log reports `npm install: command not found` and shows the command with single quotes (for example, `'npm install'`), remove the quote marks from the Install Command override in **Project Settings → Build and Deployment**, or restore automatic detection, then redeploy.
 
 ## 3. Subsequent updates
 
