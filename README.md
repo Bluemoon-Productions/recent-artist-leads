@@ -1,22 +1,19 @@
-# Radar — live Indian artist catalogue search
+# Radar — Indian artist and release search
 
-Radar is a responsive React/Vite website for searching artist records from [MusicBrainz](https://musicbrainz.org/), a free, community-maintained music database. Searches run on demand through `/api/artists`; there are no bundled/demo artist records and no API key is required.
+Radar is a responsive React/Vite search workspace for discovering Indian artists and music announcements across public platforms. Choose **YouTube**, **Instagram**, **Spotify**, or optional **MusicBrainz**, enter artist/genre/community/location keywords, then open the corresponding public search results.
 
-## What live search returns
+There are no bundled/demo artist records. YouTube and Spotify open their own search pages; Instagram searches public Google-indexed Instagram pages; MusicBrainz returns live catalogue records inside Radar. External platforms do not provide Radar with a results API here, so their results are not scraped, copied or stored in the app.
 
-- Artist name and artist type (person, group, etc.).
-- Country and the area recorded in MusicBrainz.
-- Community-maintained genre/style tags.
-- MusicBrainz catalogue link.
-- Instagram, YouTube and Spotify links only if contributors have attached those relationships to the artist record.
+## Search providers
 
-Search filters are sent to MusicBrainz for artist name, community tag, genre/niche tag and area. Its artist search results are capped at 100 records per request. MusicBrainz is a volunteer catalogue, so coverage, tags, location and social links vary.
+- **YouTube:** Opens public YouTube search with artist, community, genre, location and release-announcement keywords. Review the channel/video and description manually.
+- **Instagram:** Opens Google Search restricted to `site:instagram.com`, including release keywords and Google's documented [`after:` / `before:` date operators](https://support.google.com/websearch/answer/2466433) if a date range is entered. This only finds public, indexed pages; it cannot search private/login-only content or guarantee the post's release date.
+- **Spotify:** Opens Spotify search for artist/music keywords. It is useful for discovering artist and track pages, not social release announcements.
+- **MusicBrainz:** Optional direct catalogue search, returning community-maintained artist records, tags, area/country, catalogue URL and any linked social profiles. MusicBrainz does not provide complete release announcements, follower counts or contact details.
 
-## What no free public source can reliably provide here
+All providers are free to search without an API key from Radar. **Follower ranges cannot filter results** on these public search pages, so check each platform profile manually. The optional date range is enabled only for Instagram's Google-indexed public pages; its operators narrow indexed post pages, not confirmed release dates. Verify the original post, date, and professional outreach contact before acting on a lead. Never treat missing data as proof that an artist has no profile or release.
 
-This is **not** an upcoming-release monitor. MusicBrainz does not index Instagram announcements, and its catalogue does not provide follower counts, reliable city/state for every artist, private/professional contact details, or a complete feed of future single/EP/album/video announcements. Instagram's [official API](https://developers.facebook.com/documentation/instagram-platform/instagram-api-with-facebook-login/) is restricted to professional accounts and requires an authorized professional account/access token; it is not an unrestricted public search API. YouTube's [Data API](https://developers.google.com/youtube/data-api) requires a Google project/API key and quota; its [video search](https://developers.google.com/youtube/v3/docs/search/list) is not a comprehensive feed of music-release announcements. Google Search/AI and scraped website results are not a free, stable, unrestricted substitute.
-
-For these reasons, Radar disables no filters while pretending to know missing data: it searches only the fields MusicBrainz supplies, and explicitly explains the unavailable follower/date/release/contact fields. A MusicBrainz artist profile is labelled as a **catalogue source**, not a release-announcement source. Empty social links mean the catalogue has no linked URL; they do not prove that the artist has no social profile.
+The public platform results link is the search source itself. Radar does not claim that a search-engine result is an artist's official announcement. No platform pages are scraped and no search results from YouTube, Instagram, Google or Spotify are imported into the directory.
 
 ## Run locally
 
@@ -27,7 +24,7 @@ npm install
 npm run dev
 ```
 
-Open the Vite URL (normally `http://localhost:5173`), create a local account, then click **Search live data** in the directory. Vite provides a development API route that calls MusicBrainz server-side. The deployed site uses the Vercel Function in `api/artists.ts`.
+Open the Vite URL (normally `http://localhost:5173`), create a local account, open the directory, select a provider, and click **Search live data**. The resulting **Open search results** link launches the selected public search in a new tab.
 
 Build and preview:
 
@@ -36,13 +33,12 @@ npm run build
 npm run preview
 ```
 
-## API behavior
+## MusicBrainz API
 
-- `GET /api/artists?query=...&community=...&niche=...&area=...`
-- The endpoint searches MusicBrainz `country:IN`, adds any supplied search fields, and returns at most 100 artist records with catalogue tags and linked artist URLs.
-- Requests include an identifying `User-Agent` and use the [MusicBrainz API](https://musicbrainz.org/doc/MusicBrainz_API) rather than scraping its website. Transient busy/rate-limit responses are retried once; search results are cached briefly by Vercel.
-- No Instagram, Google, YouTube, Spotify or AI API credentials are used by this implementation.
+`GET /api/artists?query=...&community=...&niche=...&area=...` searches the MusicBrainz `country:IN` catalogue. It is implemented as a Vercel Function in `api/artists.ts` and local Vite middleware in `vite.config.ts`. Requests include an identifying `User-Agent`; transient busy/rate-limit responses are retried once. Results are capped at 100 and briefly cached by Vercel.
+
+No YouTube, Instagram, Spotify, Google Search or AI API credentials are used. The existing public search links avoid scraping and paid search APIs. Instagram official API access is restricted; YouTube Data API requires a Google project/API key and quota. Neither offers a comprehensive unrestricted feed of all Indian artists' social release announcements.
 
 ## Accounts and privacy
 
-Signup/login in this prototype remains local to the current browser and is not production authentication. Artist results are fetched from MusicBrainz when requested and are not retained by the app. Do not treat this as shared multi-user storage or use it to collect sensitive/private contact details. See [VERCEL.md](./VERCEL.md) for deployment notes.
+Signup/login remains local to the current browser and is not production authentication. MusicBrainz responses are not persisted by Radar, and external search results stay on their respective platforms. Do not treat this as shared multi-user storage or use it to collect sensitive/private contact details. See [VERCEL.md](./VERCEL.md) for deployment notes.
