@@ -68,7 +68,7 @@ function App() {
   const [provider, setProvider] = useState<"musicbrainz" | SearchProvider>("youtube");
   const [query, setQuery] = useState("");
   const [community, setCommunity] = useState("");
-  const [niche, setNiche] = useState("indie");
+  const [niche, setNiche] = useState("");
   const [areaFilter, setAreaFilter] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
